@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+# Pull or clone a repository upon push event
+# File: push
+
+import sys
+import os
+import json
+import subprocess
+PIPE = subprocess.PIPE
+with open(sys.argv[1], 'r') as jsf:
+  payload = json.loads(jsf.read())
+
+name = payload['repository']['name']
+clone_url = payload['repository']['clone_url']
+app_path = os.path.join(os.environ['WSGI_APPS_PATH'],name)
+
+if os.path.isdir(app_path):
+    process = subprocess.Popen(['git','pull'], cwd=app_path, stdout=PIPE, stderr=PIPE)
+else:
+    process = subprocess.Popen(["git","clone",clone_url], cwd=os.environ['WSGI_APPS_PATH'], stdout=PIPE, stderr=PIPE)
+stdoutput, stderroutput = process.communicate()
+
+name = payload['repository']['name']
+outfile = '/wsgi/tmp/hook-{}.log'.format(name)
+
+with open(outfile, 'w') as f:
+    f.write(stdoutput)
